@@ -12,12 +12,11 @@ export async function POST(req) {
     }
 
     const profileCtx = channel ? `Kanaal: "${channel}". ` : ''
-    const claudePrompt = `${profileCtx}Je bent expert YouTube thumbnail designer. Schrijf een gedetailleerde Engelse image-generation prompt voor het FLUX Thumbnails LoRA-model voor deze YouTube video: "${title}". Niche: ${niche}. Stijl: ${style}. Merkkleur (hex): ${color}. Gezicht op thumbnail: ${face}.
+    const claudePrompt = `${profileCtx}Je bent expert YouTube thumbnail designer. Schrijf een gedetailleerde Engelse image-generation prompt voor het FLUX model voor deze YouTube video: "${title}". Niche: ${niche}. Stijl: ${style}. Merkkleur (hex): ${color}. Gezicht op thumbnail: ${face}.
 
 Regels:
-- Begin ALTIJD met: "Thumbnail in the style of TOK,"
-- Beschrijf compositie, kleuren, verlichting, emotie, tekst-overlay en sfeer
-- Houd het onder 120 woorden
+- Beschrijf compositie, kleuren, verlichting, emotie en sfeer
+- Houd het onder 80 woorden
 - Schrijf alleen de prompt, geen uitleg
 
 Geef ALLEEN de prompt terug, niets anders.`
@@ -38,9 +37,9 @@ Geef ALLEEN de prompt terug, niets anders.`
 
     const claudeData = await claudeRes.json()
     const fluxPrompt = claudeData.content?.map(b => b.text || '').join('').trim()
-    if (!fluxPrompt) throw new Error('Claude gaf geen prompt terug.')
+      || `YouTube thumbnail, ${niche}, ${title}, ${style}, ${color} dominant color, bold text, high contrast, eye-catching`
 
-    const repRes = await fetch('https://api.replicate.com/v1/models/justmalhar/flux-thumbnails/predictions', {
+    const repRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-1-schnell/predictions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,25 +51,4 @@ Geef ALLEEN de prompt terug, niets anders.`
           prompt: fluxPrompt,
           aspect_ratio: '16:9',
           output_format: 'webp',
-          output_quality: 90,
-          num_inference_steps: 28,
-          guidance_scale: 3.5,
-          model: 'dev',
-        },
-      }),
-    })
-
-    const repData = await repRes.json()
-    if (repData.detail) throw new Error('Replicate: ' + repData.detail)
-    if (repData.error) throw new Error('Replicate: ' + repData.error)
-
-    return Response.json({
-      predictionId: repData.id,
-      fluxPrompt,
-      status: repData.status,
-      output: repData.output || null,
-    })
-  } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 })
-  }
-}
+          output_quality: 9
